@@ -1,13 +1,8 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
+//#![allow(dead_code)]
+//#![allow(unused_variables)]
 
-//#[macro_use] extern crate log;
-
+use std::collections::HashMap;
 use std::str;
-use std::sync::mpsc;
-use std::sync::mpsc::{Sender, Receiver};
-use std::thread;
-
 
 const ASCII_D: u8 = 100;
 const ASCII_E: u8 = 101;
@@ -24,24 +19,22 @@ const NUMBER_END: u8 = ASCII_E;
 const BYTE_ARRAY_DIVIDER: u8 = ASCII_COLON;
 
 #[derive(PartialEq, Clone, Debug)]
-//#[derive(PartialEq, Copy, Clone, Debug)]
-enum Bencoding {
+pub enum Bencoding {
     Integer(u64),
     ByteString(String),
-    //ByteString(&'static str),
-    List,
-    Dictionary,
+    List(Vec<Bencoding>),
+    Dictionary(HashMap<String, Bencoding>),
     Eof,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Bencoding, decode};
+    use super::{Bencoding, decode, decode_byte_string_len, extract_byte_string_length, decode_number_unmarked};
+    use std::collections::HashMap;
 
     struct TestCase {
         input: Vec<u8>,
-        expected: Bencoding, /* expected: Result<Bencoding, String>,
-                              * expected: Result<Bencoding, &'static Error>, // expected: Result<Bencoding, String>, */
+        expected: Bencoding, 
     }
 
     #[test]
@@ -52,7 +45,7 @@ mod tests {
 
         ];
         for t in test_cases {
-            println!("test decode...");
+            println!("test number decode...");
             let benc = decode(t.input);
             assert!(t.expected == benc);
         }
@@ -74,6 +67,101 @@ mod tests {
     }
 
     #[test]
+    fn test_decode_byte_string_len() {
+        
+        struct TestCase {
+            input: Vec<u8>,
+            max: u8,
+            expected: Bencoding,
+        }
+
+        let test_cases: Vec<TestCase> = vec![
+            TestCase{   
+                input: vec![117, 118, 119, 120, 121, 122], 
+                max: 5,
+                expected: Bencoding::ByteString("uvwxy".to_string())
+            },
+            TestCase{
+                input: vec![97, 98, 99, 100, 101, 102], 
+                max: 4,
+                expected: Bencoding::ByteString("abcd".to_string())
+            },
+        ];
+
+        for t in test_cases {
+            let mut iter = t.input.iter().peekable();
+            let benc = decode_byte_string_len(&mut iter, t.max);
+
+            let actual = match benc {
+                Bencoding::ByteString(ref s) => s,
+                _ => panic!("unexpected type"),
+            };
+            println!("expected: {:?}; got: {}", t.expected, actual);
+            assert!(t.expected == benc);
+        }
+    }
+
+    #[test]
+    fn test_decode_number_unmarked() {
+        
+        let test_cases: Vec<TestCase> = vec![
+            TestCase{   
+                input: vec![51, 58, 117, 118, 119], 
+                expected: Bencoding::Integer(3)
+            },
+            TestCase{   
+                input: vec![54, 58, 117, 118, 119, 120, 121, 122], 
+                expected: Bencoding::Integer(6)
+            },
+        ];
+
+        for t in test_cases {
+            let mut iter = t.input.iter().peekable();
+            let benc = decode_number_unmarked(&mut iter, 58);
+            let actual = match benc {
+                Bencoding::Integer(ref n) => n,
+                _ => panic!("unexpected type"),
+            };
+            println!("expected: {:?}; got: {}", t.expected, actual);
+            assert!(t.expected == benc);
+        }
+    }
+
+    #[test]
+    fn test_extract_byte_string_length() {
+
+        struct TestCase {
+            input: Vec<u8>,
+            expected: u64 
+        }
+
+        let test_cases: Vec<TestCase> = vec![
+            TestCase{   
+                input: vec![51, 58, 117, 118, 119], 
+                expected: 3
+            },
+            TestCase{   
+                input: vec![53, 58, 118, 119, 120, 121, 122], 
+                expected: 5
+            },
+        ];
+
+        for t in test_cases {
+            let mut iter = t.input.iter().peekable();
+            let actual = extract_byte_string_length(&mut iter); // , 58);
+            /*
+            let actual = match str_len {
+                //Bencoding::ByteString(ref s) => s,
+                n if ac => n,
+                _ => panic!("unexpected type"),
+            };
+            */
+            println!("expected: {:?}; got: {}", t.expected, actual);
+            assert!(t.expected == actual);
+        }
+    }
+
+    #[test]
     fn test_decode_byte_string() {
         let test_cases: Vec<TestCase> = vec![
             TestCase{   
@@ -87,12 +175,12 @@ mod tests {
         ];
 
         for t in test_cases {
-            let benc  = decode(t.input);
+            let benc = decode(t.input);
             let actual = match benc {
                 Bencoding::ByteString(ref s) => s,
                 _ => panic!("unexpected type"),
             };
-            println!("expected: {:?}; got: {}", t.expected, actual );
+            println!("expected: {:?}; got: {}", t.expected, actual);
             assert!(t.expected == benc);
         }
     }
@@ -112,86 +200,184 @@ mod tests {
         ];
 
         for t in test_cases {
-            let benc  = decode(t.input);
-            let actual = match benc {
+            let benc = decode(t.input);
+            match benc {
                 Bencoding::ByteString(ref s) => s,
                 _ => panic!("unexpected type"),
             };
-            //println!("expected: {:?}; got: {}", t.expected, actual );
-            //assert!(t.expected == benc);
         }
     }
 
-}
+    #[test]
+    fn test_decode_list() {
+        let test_cases: Vec<TestCase> = vec![
+            TestCase{
+                input: "l5:ItemA5:ItemBe".to_string().into_bytes(), // Vec<u8>
+                expected:   Bencoding::List( vec![
+                                    Bencoding::ByteString("ItemA".to_string()),
+                                    Bencoding::ByteString("ItemB".to_string())
+                                ])
+            },
+        ];
 
-fn decode(src: Vec<u8>) -> Bencoding {
-    println!("decoding...");
-    let (tx, rx): (Sender<u8>, Receiver<u8>) = mpsc::channel();
-    println!("channels created...");
-    let h = thread::spawn(|| scan(tx, src));
-    println!("spawned scan...");
+        for t in test_cases {
+            let benc = decode(t.input);
+            let actual = match benc {
+                Bencoding::List(ref v) => v,
+                _ => panic!("unexpected type"),
+            };
+            println!("expected: {:?}; got: {:?}", t.expected, actual);
+            assert!(t.expected == benc);
+        }
+    }
 
-    decode_next(&rx)
-}
+    #[test]
+    fn test_decode_dictionary() {
+        let mut test_result: HashMap<String, Bencoding> = HashMap::new();
+        test_result.insert("announce".to_string(), Bencoding::ByteString("http://192.168.1.74:6969/announce".to_string()));
+        test_result.insert("comment".to_string(), Bencoding::ByteString("This is a comment".to_string()));
+        let test_cases: Vec<TestCase> = vec![
+            TestCase{
+                input: "d8:announce33:http://192.168.1.74:6969/announce7:comment17:This is a commente".to_string().into_bytes(),
+                expected: Bencoding::Dictionary(test_result)
+            },
+        ];
 
-fn scan(tx: Sender<u8>, src: Vec<u8>) {
-    //println!("scanning...");
-    for i in src {
-        let res = tx.send(i);
-        match res {
-            Ok(_) => (),
-            Err(e) => panic!("error sending on channel: {}", e),
-        };
+        for t in test_cases {
+            let benc = decode(t.input);
+            let actual = match benc {
+                Bencoding::Dictionary(ref v) => v,
+                _ => panic!("unexpected type"),
+            };
+            println!("expected: {:?}; got: {:?}", t.expected, actual);
+            assert!(t.expected == benc);
+        }
     }
 }
 
-fn decode_next(rx: &Receiver<u8>) -> Bencoding {
-    //debug!("logging... decoding next...");
-    println!("decoding next...");
-    for curr in rx {
+pub fn decode(src: Vec<u8>) -> Bencoding {
+    let mut iter_src = src.iter().peekable();
+    decode_next(&mut iter_src)
+}
+
+pub fn iter_print<'a>(iter: &mut std::slice::Iter<'a, u32>) {
+    let opt = iter.next();
+    match opt {
+        Some(v) => v,
+        None => panic!("no val in iterator"),
+    };
+}
+
+fn decode_next<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
+    while let Some(&&curr) = iter.peek() {
         match curr {
-            /*
             DICTIONARY_START => {
-                return Bencoding::Eof;
-                // return decode_dictionary(&rx);
+                //return Bencoding::Eof;
+                return decode_dictionary(&mut iter);
             }
             LIST_START => {
-                return Bencoding::Eof;
-                // return decode_list(&rx);
+                println!("decode_list()...");
+                return decode_list(&mut iter);
             }
-            */
             NUMBER_START => {
-                println!("decoding number...");
-                return decode_number(&rx, curr, NUMBER_END) ;
+                println!("decode_number()... starting with: {}", curr);
+                return decode_number(&mut iter, NUMBER_END);
             }
             _ => {
-                println!("decoding bytestring...");
-                //return Bencoding::Eof;
-                return decode_byte_string(&rx, curr);
+                println!("decode_bytestring()... curr: {}", curr);
+                return decode_byte_string(&mut iter);
             }
         }
     }
     Bencoding::Eof
 }
 
-// decode_number parses out a number token, discarding the initial start marker byte.
-fn decode_number(rx: &Receiver<u8>, curr: u8, t: u8) -> Bencoding {
-    let mut snum: String = String::new();
+fn decode_list<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
+    // Skip over the list indicator character.
+    iter.next();
 
-    let mut found_terminator: bool = false;
-    for b in rx {
-        if b == t {
-            found_terminator = true;
-            break;
+    let mut list: Vec<Bencoding> = Vec::new();
+
+    loop {
+        {  // Scope so that we don't borrow iter as mutable more than once at a time.
+            let opt = iter.peek();
+            if let Some(&&v) = opt {
+                if v == LIST_END {
+                    break;
+                }
+            }
         }
 
-        let barr = &[b].to_owned();
-        let bstr = str::from_utf8(barr);
-        let s = match bstr.to_owned() {
-            Ok(v) => v,
-            Err(e) => panic!("error decoding number: {}", e),
+        list.push(decode_next(&mut iter));
+    }
+
+    Bencoding::List(list)
+}
+
+fn  decode_dictionary<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
+    // Skip over the dictionary indicator character.
+    iter.next();
+
+    let mut dict: HashMap<String, Bencoding> = HashMap::new();
+    let mut keys: Vec<String> = Vec::new();
+    
+    loop {
+        {
+            let opt = iter.peek();
+            if let Some(&&v) = opt {
+               if v == DICTIONARY_END {
+                    break;
+                }
+            }
+        }
+        let key = decode_byte_string(&mut iter);
+        let val  = decode_next(&mut iter);
+        
+        let str_key = match key{
+            Bencoding::ByteString(ref v) => v,
+            _ => panic!("unexpected type"),
         };
-        snum.push_str(s);
+        keys.push(str_key.to_owned());
+        dict.insert(str_key.to_owned(), val);
+    }
+    
+    // Verify that keys arrived sorted.
+    let mut sorted_keys = keys.clone();
+    sorted_keys.sort();
+    for i in 0..keys.len()-1 {
+        if keys[i] != sorted_keys[i] {
+            panic!("dictionary keys not correctly sorted while decoding");
+        }
+    }
+    Bencoding::Dictionary(dict)
+}
+
+// decode_number parses out a number token, discarding the initial start marker byte.
+fn decode_number<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>, t: u8) -> Bencoding {
+    let mut snum: String = String::new();
+    let mut found_terminator: bool = false;
+    while let Some(b) = iter.next() {
+        match *b {
+            NUMBER_START => {
+                // Discard number start indicator.
+                continue;
+            }
+            _ if *b == t => {
+                // Handle terminator.
+                found_terminator = true;
+                break;
+            }
+            _ => {
+                // Handle number characters.
+                let barr = &[*b].to_owned();
+                let bstr = str::from_utf8(barr);
+                let s = match bstr.to_owned() {
+                    Ok(v) => v,
+                    Err(e) => panic!("error decoding number: {}", e),
+                };
+                snum.push_str(s);
+            }
+        };
     }
     if !found_terminator {
         panic!("error, number not terminated".to_string());
@@ -206,8 +392,8 @@ fn decode_number(rx: &Receiver<u8>, curr: u8, t: u8) -> Bencoding {
 
 // extract_byte_string_length returns the length of a byte string.
 // The length of the byte string prefixes the byte string, with a delimiter.
-fn extract_byte_string_length(rx: &Receiver<u8>, curr: u8, delim: u8) -> u64 {
-    let benc_num = decode_number_unmarked(rx, curr, BYTE_ARRAY_DIVIDER);
+fn extract_byte_string_length<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> u64 {
+    let benc_num = decode_number_unmarked(&mut iter, BYTE_ARRAY_DIVIDER);
     let len = match benc_num {
         Bencoding::Integer(v) => v,
         _ => panic!("unexpected type"),
@@ -215,14 +401,34 @@ fn extract_byte_string_length(rx: &Receiver<u8>, curr: u8, delim: u8) -> u64 {
     len
 }
 
+
+fn decode_byte_string_len<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>, len: u8) -> Bencoding {
+    let mut decr: u8 = len;
+    let mut buf: Vec<u8> = Vec::new();
+    while let Some(b) = iter.next() {
+        buf.push(*b);
+        decr = decr - 1;
+        if decr == 0 {
+            let a = String::from_utf8(buf);
+            let s = match a {
+                Ok(v) => v,
+                Err(e) => panic!("error getting string: {}", e),
+            };
+            return Bencoding::ByteString(s);
+        }
+    }
+    return Bencoding::ByteString("".to_string());
+}
+
+
 // decode_byte_string tokenises a byte string.
-fn decode_byte_string(rx: &Receiver<u8>, curr: u8) -> Bencoding {
-    let len = extract_byte_string_length(rx, curr, BYTE_ARRAY_DIVIDER);    
+fn decode_byte_string<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
+    let len = extract_byte_string_length(&mut iter); //, BYTE_ARRAY_DIVIDER);
 
     let mut buf: Vec<u8> = Vec::new();
     let mut i: u64 = 0;
-    for b in rx {
-        buf.push(b);
+    while let Some(b) = iter.next() {
+        buf.push(*b);
         i = i + 1;
         if i == len {
             break;
@@ -241,44 +447,55 @@ fn decode_byte_string(rx: &Receiver<u8>, curr: u8) -> Bencoding {
         Ok(v) => v,
         Err(e) => panic!("error getting string: {}", e),
     };
-    
+
     return Bencoding::ByteString(s.to_string());
 }
 
-// decode_number_terminated_with_peek does the same as decode_number_terminated
+// decode_number_unmarked does the same as decode_number_terminated
 // but does not discard the current byte, instead including it in the result.
-fn decode_number_unmarked(rx: &Receiver<u8>, curr: u8, t: u8) -> Bencoding {
+// unmarked refers to the number not being prefixed with i and suffixed with e.
+fn decode_number_unmarked<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>, t: u8) -> Bencoding {
     let mut snum: String = String::new();
-
-    println!("curr: {}", curr);
-    let f = &[curr].to_owned();
-    let g = str::from_utf8(f);
-    let d = match g.to_owned() {
-        Ok(v) => v,
-        Err(e) => panic!("error decoding number: {}", e),
-    };
-    snum.push_str(d);
-
     let mut found_terminator: bool = false;
-    for b in rx {
-        println!("decoding... {}", b);
-        if b == t {
-            found_terminator = true;
-            break;
-        }
-        println!("decoding... should have terminated {}", b);
 
-        let f = &[b].to_owned();
-        let g = str::from_utf8(f);
-        let d = match g.to_owned() {
-            Ok(v) => v,
-            Err(e) => panic!("error decoding number: {}", e),
-        };
-        snum.push_str(d);
+    while let Some(curr) = iter.next() {
+        match *curr {
+            _ if *curr == t  => {
+                found_terminator = true;
+                break;
+            },
+            _ => {
+                // Handle number characters.
+                let barr = &[*curr].to_owned();
+                let bstr = str::from_utf8(barr);
+                let s = match bstr.to_owned() {
+                    Ok(v) => v,
+                    Err(e) => panic!("error decoding number: {}", e),
+                };
+                snum.push_str(s);
+            },
+        }
     }
 
     if !found_terminator {
-        panic!("error, number not terminated".to_string());
+        while let Some(b) = iter.next() {
+            if *b == t {
+                found_terminator = true;
+                break;
+            }
+
+            let f = &[*b].to_owned();
+            let g = str::from_utf8(f);
+            let d = match g.to_owned() {
+                Ok(v) => v,
+                Err(e) => panic!("error decoding number: {}", e),
+            };
+            snum.push_str(d);
+        }
+
+        if !found_terminator {
+            panic!("error, number not terminated".to_string());
+        }
     }
 
     let p = snum.trim().parse::<u64>();
@@ -286,38 +503,5 @@ fn decode_number_unmarked(rx: &Receiver<u8>, curr: u8, t: u8) -> Bencoding {
         Ok(v) => v,
         Err(e) => panic!("error parsing num: {}; err: {}", snum, e),
     };
-    //return Box::new(n);
     Bencoding::Integer(n)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
