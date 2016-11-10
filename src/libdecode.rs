@@ -7,19 +7,7 @@ use std;
 use std::collections::HashMap;
 use std::str;
 
-const ASCII_D: u8 = 100;
-const ASCII_E: u8 = 101;
-const ASCII_I: u8 = 105;
-const ASCII_L: u8 = 108;
-const ASCII_COLON: u8 = 58;
-
-const DICTIONARY_START: u8 = ASCII_D; //String::from("d").into_bytes()[0];
-const DICTIONARY_END: u8 = ASCII_E;
-const LIST_START: u8 = ASCII_L;
-const LIST_END: u8 = ASCII_E;
-const NUMBER_START: u8 = ASCII_I;
-const NUMBER_END: u8 = ASCII_E;
-const BYTE_ARRAY_DIVIDER: u8 = ASCII_COLON;
+pub use super::*;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Bencoding {
@@ -245,8 +233,12 @@ mod tests {
     #[test]
     fn test_decode_dictionary() {
         let mut test_result: HashMap<String, Bencoding> = HashMap::new();
-        test_result.insert("announce".to_string(), Bencoding::ByteString("http://192.168.1.74:6969/announce".to_string()));
-        test_result.insert("comment".to_string(), Bencoding::ByteString("This is a comment".to_string()));
+        test_result.insert(
+            "announce".to_string(), 
+            Bencoding::ByteString("http://192.168.1.74:6969/announce".to_string()));
+        test_result.insert(
+            "comment".to_string(), 
+            Bencoding::ByteString("This is a comment".to_string()));
         let test_cases: Vec<TestCase> = vec![
             TestCase{
                 input: "d8:announce33:http://192.168.1.74:6969/announce7:comment17:This is a commente".to_string().into_bytes(),
@@ -271,7 +263,7 @@ pub fn decode(src: Vec<u8>) -> Bencoding {
     decode_next(&mut iter_src)
 }
 
-pub fn iter_print<'a>(iter: &mut ::std::slice::Iter<'a, u32>) {
+pub fn iter_print<'a>(iter: &mut std::slice::Iter<'a, u32>) {
     let opt = iter.next();
     match opt {
         Some(v) => v,
