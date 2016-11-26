@@ -258,6 +258,7 @@ mod tests {
     }
 }
 
+// decode transforms the text source to objects.
 pub fn decode(src: Vec<u8>) -> Bencoding {
     let mut iter_src = src.iter().peekable();
     decode_next(&mut iter_src)
@@ -295,6 +296,8 @@ fn decode_next<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>)
     Bencoding::Eof
 }
 
+// decode_list reads the text source representing a list and constructs
+// and returns a list object - a vec.
 fn decode_list<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
     // Skip over the list indicator character.
     iter.next();
