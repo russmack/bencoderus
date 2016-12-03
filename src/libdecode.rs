@@ -147,7 +147,7 @@ mod tests {
 
         for t in test_cases {
             let mut iter = t.input.iter().peekable();
-            let actual = extract_byte_string_length(&mut iter); // , 58);
+            let actual = extract_byte_string_length(&mut iter);
             /*
             let actual = match str_len {
                 //Bencoding::ByteString(ref s) => s,

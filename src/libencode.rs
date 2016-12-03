@@ -1,12 +1,14 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::collections::HashMap;
 
 pub use super::*;
 
 mod tests {
 
     use super::{Bencoding, run, decode, encode};
+    use std::collections::HashMap;
 
     #[test]
     fn test_run() {
@@ -89,6 +91,35 @@ mod tests {
             assert!(test_input == str);
         }
     }
+
+    #[test]
+    fn test_encode_dictionary() {
+
+        let mut test_result: HashMap<String, Bencoding> = HashMap::new();
+        test_result.insert(
+            "announce".to_string(), 
+            Bencoding::ByteString("http://192.168.1.74:6969/announce".to_string()));
+        test_result.insert(
+            "comment".to_string(), 
+            Bencoding::ByteString("This is a comment".to_string()));
+        let test_cases: Vec<TestCase> = vec![
+            TestCase{
+                input: "d8:announce33:http://192.168.1.74:6969/announce7:comment17:This is a commente".to_string().into_bytes(),
+                expected: Bencoding::Dictionary(test_result)
+            },
+        ];
+
+        // Note that for the tests we're both decoding and encoding.
+        // Partly just because it was easier.
+        for t in test_cases {
+            let decode_input = t.input.clone();
+            let test_input = t.input.clone();
+            let benc = decode(decode_input);
+            let s = encode(benc);
+            assert!(test_input == s);
+        }
+
+    }
 }
 
 fn run() {
@@ -117,7 +148,14 @@ fn encode_next(mem_stream: &mut Vec<u8>, obj: Bencoding) {
             let v_2 = v.clone();
             encode_list(mem_stream, Bencoding::List(v_2))
         }
-        _ => panic!("unexepected type"),
+        Bencoding::Dictionary(ref v) => {
+            let v_2 = v.clone();
+            encode_dictionary(mem_stream, Bencoding::Dictionary(v_2))
+        }
+        _ => {
+            println!("panic on obj: {:?}", obj);
+            panic!("unexepected type");
+        }
     };
 }
 
@@ -157,7 +195,6 @@ fn encode_list(mem_stream: &mut Vec<u8>, benc_list: Bencoding) {
     mem_stream.push(LIST_END);
 }
 
-/*
 fn encode_dictionary(mem_stream: &mut Vec<u8>, benc_dict: Bencoding) {
     mem_stream.push(DICTIONARY_START);
     // input: d3:bar4:spam3:fooi42ee
@@ -166,6 +203,22 @@ fn encode_dictionary(mem_stream: &mut Vec<u8>, benc_dict: Bencoding) {
         _ => panic!("unexpected type"),
     };
 
+    let mut keys: Vec<String> = vec![];
+    for key in val.keys() {
+        let key_2 = key.clone();
+        keys.push(key_2);
+    }
+    keys.sort();
+    for k in keys {
+        let kk = k.clone();
+
+        let vv = match val.get(&kk) {
+            Some(o) => o.clone(),
+            _ => panic!("no such key in dictionary"),
+        };
+
+        encode_next(mem_stream, Bencoding::ByteString(kk));
+        encode_next(mem_stream, vv);
+    }
     mem_stream.push(DICTIONARY_END);
 }
-*/
