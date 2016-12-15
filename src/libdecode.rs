@@ -1,7 +1,5 @@
-//#![allow(dead_code)]
-//#![allow(unused_variables)]
-
-//pub use self::libdecode::*;
+#![allow(dead_code)]
+#![allow(unused_variables)]
 
 use std;
 use std::collections::HashMap;
@@ -148,13 +146,6 @@ mod tests {
         for t in test_cases {
             let mut iter = t.input.iter().peekable();
             let actual = extract_byte_string_length(&mut iter);
-            /*
-            let actual = match str_len {
-                //Bencoding::ByteString(ref s) => s,
-                n if ac => n,
-                _ => panic!("unexpected type"),
-            };
-            */
             println!("expected: {:?}; got: {}", t.expected, actual);
             assert!(t.expected == actual);
         }
@@ -211,7 +202,7 @@ mod tests {
     fn test_decode_list() {
         let test_cases: Vec<TestCase> = vec![
             TestCase{
-                input: "l5:ItemA5:ItemBe".to_string().into_bytes(), // Vec<u8>
+                input: "l5:ItemA5:ItemBe".to_string().into_bytes(), 
                 expected:   Bencoding::List( vec![
                                     Bencoding::ByteString("ItemA".to_string()),
                                     Bencoding::ByteString("ItemB".to_string())
@@ -276,19 +267,15 @@ fn decode_next<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>)
     while let Some(&&curr) = iter.peek() {
         match curr {
             DICTIONARY_START => {
-                //return Bencoding::Eof;
                 return decode_dictionary(&mut iter);
             }
             LIST_START => {
-                println!("decode_list()...");
                 return decode_list(&mut iter);
             }
             NUMBER_START => {
-                println!("decode_number()... starting with: {}", curr);
                 return decode_number(&mut iter, NUMBER_END);
             }
             _ => {
-                println!("decode_bytestring()... curr: {}", curr);
                 return decode_byte_string(&mut iter);
             }
         }
@@ -429,7 +416,7 @@ fn decode_byte_string_len<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a
 
 // decode_byte_string tokenises a byte string.
 fn decode_byte_string<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
-    let len = extract_byte_string_length(&mut iter); //, BYTE_ARRAY_DIVIDER);
+    let len = extract_byte_string_length(&mut iter);
 
     let mut buf: Vec<u8> = Vec::new();
     let mut i: u64 = 0;
@@ -440,13 +427,6 @@ fn decode_byte_string<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a
             break;
         }
     }
-
-    // NOTE !!!
-    // pieces: A 20 character SHA1 hash is generated for each piece.
-    // These are joined together into one large byte array (byte[][]).
-    // BUT!!! : from_utf8() fails, maybe length is twice the number of chars
-    // to handle two-byte chars, and from_utf8() can't handle these chars -
-    // find a suitable from_.... func.
 
     let a = String::from_utf8(buf);
     let s = match a {

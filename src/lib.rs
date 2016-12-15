@@ -5,7 +5,6 @@ pub mod libdecode;
 pub mod libencode;
 
 pub use self::libdecode::*;
-//pub use self::libdecode::Bencoding;
 
 const ASCII_D: u8 = 100;
 const ASCII_E: u8 = 101;
@@ -13,7 +12,7 @@ const ASCII_I: u8 = 105;
 const ASCII_L: u8 = 108;
 const ASCII_COLON: u8 = 58;
 
-pub const DICTIONARY_START: u8 = ASCII_D; //String::from("d").into_bytes()[0];
+pub const DICTIONARY_START: u8 = ASCII_D;
 pub const DICTIONARY_END: u8 = ASCII_E;
 pub const LIST_START: u8 = ASCII_L;
 pub const LIST_END: u8 = ASCII_E;

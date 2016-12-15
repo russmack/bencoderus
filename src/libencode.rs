@@ -7,12 +7,11 @@ pub use super::*;
 
 mod tests {
 
-    use super::{Bencoding, run, decode, encode};
+    use super::{Bencoding, decode, encode};
     use std::collections::HashMap;
 
     #[test]
     fn test_run() {
-        run();
         assert!(true);
     }
 
@@ -73,7 +72,7 @@ mod tests {
     fn test_encode_list() {
         let test_cases: Vec<TestCase> = vec![
             TestCase{
-                input: "l5:ItemA5:ItemBe".to_string().into_bytes(), // Vec<u8>
+                input: "l5:ItemA5:ItemBe".to_string().into_bytes(), 
                 expected: Bencoding::List( vec![
                                     Bencoding::ByteString("ItemA".to_string()),
                                     Bencoding::ByteString("ItemB".to_string())
@@ -122,10 +121,6 @@ mod tests {
     }
 }
 
-fn run() {
-    // let b = Bencoding::Integer(4);
-}
-
 fn encode(benc: Bencoding) -> Vec<u8> {
     let mut mem_stream = vec![];
     encode_next(&mut mem_stream, benc);
@@ -133,14 +128,11 @@ fn encode(benc: Bencoding) -> Vec<u8> {
 }
 
 fn encode_next(mem_stream: &mut Vec<u8>, obj: Bencoding) {
-    // let t: Bencoding = match obj {
     match obj {
         Bencoding::Integer(ref v) => {
-            //println!("integer found");
             encode_number(mem_stream, Bencoding::Integer(*v))
         }
         Bencoding::ByteString(ref v) => {
-            //println!("byte string found")
             let v_2 = v.clone();
             encode_bytestring(mem_stream, Bencoding::ByteString(v_2))
         }
@@ -153,8 +145,7 @@ fn encode_next(mem_stream: &mut Vec<u8>, obj: Bencoding) {
             encode_dictionary(mem_stream, Bencoding::Dictionary(v_2))
         }
         _ => {
-            println!("panic on obj: {:?}", obj);
-            panic!("unexepected type");
+            println!("panic on obj: {:?}, unexpected type", obj);
         }
     };
 }
@@ -183,8 +174,8 @@ fn encode_bytestring(mem_stream: &mut Vec<u8>, benc_str: Bencoding) {
 // writes them to the mem_stream, a mut vec<u8>.
 fn encode_list(mem_stream: &mut Vec<u8>, benc_list: Bencoding) {
     mem_stream.push(LIST_START);
-    // input: "l5:ItemA5:ItemBe".to_string().into_bytes(), // Vec<u8>
-    let mut val = match benc_list {
+    // eg. input: "l5:ItemA5:ItemBe"
+    let val = match benc_list {
         Bencoding::List(ref v) => v, 
         _ => panic!("unexpected type"),
     };
@@ -197,8 +188,8 @@ fn encode_list(mem_stream: &mut Vec<u8>, benc_list: Bencoding) {
 
 fn encode_dictionary(mem_stream: &mut Vec<u8>, benc_dict: Bencoding) {
     mem_stream.push(DICTIONARY_START);
-    // input: d3:bar4:spam3:fooi42ee
-    let mut val = match benc_dict {
+    // eg. input: d3:bar4:spam3:fooi42ee
+    let val = match benc_dict {
         Bencoding::Dictionary(ref v) => v,
         _ => panic!("unexpected type"),
     };
