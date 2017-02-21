@@ -6,7 +6,7 @@ description = "A library for Bencode encoding and decoding."
 documentation = "https://github.com/russmack/bencoderus"
 homepage = "https://github.com/russmack/bencoderus"
 repository = "https://github.com/russmack/bencoderus"
-readme = README.md"
+readme = "README.md"
 keywords = ["bencode", "encoder", "decoder", "bittorrent", "torrent"]
 license-file = "LICENSE.txt"
 
