@@ -237,7 +237,7 @@ mod tests {
     }
 }
 
-// decode transforms the text source to objects.
+// decode transforms Bencoded bytes to objects.
 pub fn decode(src: Vec<u8>) -> Bencoding {
     let mut iter_src = src.iter().peekable();
     decode_next(&mut iter_src)

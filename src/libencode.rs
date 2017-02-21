@@ -119,6 +119,7 @@ mod tests {
     }
 }
 
+// encode transforms objects to Bencoded bytes.
 pub fn encode(benc: Bencoding) -> Vec<u8> {
     let mut mem_stream = vec![];
     encode_next(&mut mem_stream, benc);
