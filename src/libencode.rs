@@ -1,13 +1,11 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
-use std::collections::HashMap;
-
 pub use super::*;
 
+#[cfg(test)]
 mod tests {
 
-    use super::{Bencoding, decode, encode};
+    use Bencoding;
+    use libencode::encode;
+    use libdecode::decode;
     use std::collections::HashMap;
 
     #[test]
@@ -16,8 +14,8 @@ mod tests {
     }
 
     struct TestCase {
-        input: Vec<u8>,
-        expected: Bencoding,
+        pub input: Vec<u8>,
+        pub expected: Bencoding,
     }
 
     #[test]
@@ -121,7 +119,7 @@ mod tests {
     }
 }
 
-fn encode(benc: Bencoding) -> Vec<u8> {
+pub fn encode(benc: Bencoding) -> Vec<u8> {
     let mut mem_stream = vec![];
     encode_next(&mut mem_stream, benc);
     mem_stream

@@ -1,30 +1,18 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
-use std;
-use std::collections::HashMap;
 use std::str;
 
 pub use super::*;
 
-#[derive(PartialEq, Clone, Debug)]
-pub enum Bencoding {
-    Integer(u64),
-    ByteString(String),
-    List(Vec<Bencoding>),
-    Dictionary(HashMap<String, Bencoding>),
-    Eof,
-}
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        Bencoding, 
-        decode, 
+    use std::collections::HashMap;
+
+    use Bencoding;
+    use libdecode::{
+        decode,
         decode_byte_string_len, 
         extract_byte_string_length, 
         decode_number_unmarked};
-    use std::collections::HashMap;
 
     struct TestCase {
         input: Vec<u8>,
@@ -307,7 +295,7 @@ fn decode_list<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>)
     Bencoding::List(list)
 }
 
-fn  decode_dictionary<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
+fn decode_dictionary<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
     // Skip over the dictionary indicator character.
     iter.next();
 
@@ -395,6 +383,7 @@ fn extract_byte_string_length<'a>(mut iter: &mut std::iter::Peekable<std::slice:
 }
 
 
+#[allow(dead_code)]
 fn decode_byte_string_len<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>, len: u8) -> Bencoding {
     let mut decr: u8 = len;
     let mut buf: Vec<u8> = Vec::new();
