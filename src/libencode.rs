@@ -47,11 +47,11 @@ mod tests {
         let test_cases: Vec<TestCase> = vec![
             TestCase{
                 input: vec![51, 58, 117, 118, 119], 
-                expected: Bencoding::ByteString("uvw".to_string())
+                expected: Bencoding::ByteString("uvw".to_string().into_bytes())
             },
             TestCase{   
                 input: vec![51, 58, 120, 121, 122], 
-                expected: Bencoding::ByteString("xyz".to_string())
+                expected: Bencoding::ByteString("xyz".to_string().into_bytes())
             },
         ];
 
@@ -72,8 +72,8 @@ mod tests {
             TestCase{
                 input: "l5:ItemA5:ItemBe".to_string().into_bytes(), 
                 expected: Bencoding::List( vec![
-                                    Bencoding::ByteString("ItemA".to_string()),
-                                    Bencoding::ByteString("ItemB".to_string())
+                                    Bencoding::ByteString("ItemA".to_string().into_bytes()),
+                                    Bencoding::ByteString("ItemB".to_string().into_bytes())
                                 ])
             },
         ];
@@ -92,13 +92,13 @@ mod tests {
     #[test]
     fn test_encode_dictionary() {
 
-        let mut test_result: HashMap<String, Bencoding> = HashMap::new();
+        let mut test_result: HashMap<Vec<u8>, Bencoding> = HashMap::new();
         test_result.insert(
-            "announce".to_string(), 
-            Bencoding::ByteString("http://192.168.1.74:6969/announce".to_string()));
+            "announce".to_string().into_bytes(), 
+            Bencoding::ByteString("http://192.168.1.74:6969/announce".to_string().into_bytes()));
         test_result.insert(
-            "comment".to_string(), 
-            Bencoding::ByteString("This is a comment".to_string()));
+            "comment".to_string().into_bytes(), 
+            Bencoding::ByteString("This is a comment".to_string().into_bytes()));
         let test_cases: Vec<TestCase> = vec![
             TestCase{
                 input: "d8:announce33:http://192.168.1.74:6969/announce7:comment17:This is a commente".to_string().into_bytes(),
@@ -161,12 +161,12 @@ fn encode_number(mem_stream: &mut Vec<u8>, num: Bencoding) {
 
 fn encode_bytestring(mem_stream: &mut Vec<u8>, benc_str: Bencoding) {
     let mut str = match benc_str {
-        Bencoding::ByteString(ref v) => v.to_string().into_bytes(),
+        Bencoding::ByteString(v) => v,
         _ => panic!("unexpected type"),
     };
     mem_stream.append(& mut str.len().to_string().into_bytes());
     mem_stream.push(58);
-    mem_stream.append(& mut str);
+    mem_stream.append(&mut str);
 }
 
 // enocde_list converts a list (a vec) into bencoding formatted bytes and
@@ -193,7 +193,8 @@ fn encode_dictionary(mem_stream: &mut Vec<u8>, benc_dict: Bencoding) {
         _ => panic!("unexpected type"),
     };
 
-    let mut keys: Vec<String> = vec![];
+    let mut keys: Vec<Vec<u8>> = vec![];
+    
     for key in val.keys() {
         let key_2 = key.clone();
         keys.push(key_2);

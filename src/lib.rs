@@ -23,8 +23,8 @@ use std::collections::HashMap;
 #[derive(PartialEq, Clone, Debug)]
 pub enum Bencoding {
     Integer(u64),
-    ByteString(String),
+    ByteString(Vec<u8>),
     List(Vec<Bencoding>),
-    Dictionary(HashMap<String, Bencoding>),
+    Dictionary(HashMap<Vec<u8>, Bencoding>),
     Eof,
 }
