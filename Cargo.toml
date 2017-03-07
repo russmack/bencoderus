@@ -1,6 +1,6 @@
 [package]
 name = "bencoderus"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Russell Mackenzie <russmackdev@gmail.com"]
 description = "A library for Bencode encoding and decoding."
 documentation = "https://github.com/russmack/bencoderus"
