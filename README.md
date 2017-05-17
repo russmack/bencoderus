@@ -2,6 +2,8 @@
 
 Rust library for encoding and decoding the Bencode coding.
 
+[![Build Status](https://travis-ci.org/russmack/bencoderus.svg?branch=master)](https://travis-ci.org/russmack/bencoderus)
+
 ## Usage
 Decode:
 ```
