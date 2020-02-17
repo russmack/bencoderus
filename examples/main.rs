@@ -4,8 +4,7 @@ extern crate hyper;
 use std::io::Read;
 use std::net::Ipv4Addr;
 
-use hyper::Client;
-use hyper::Url;
+use hyper::{Client, Url};
 
 use bencoderus::Bencoding;
 

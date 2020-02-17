@@ -1,7 +1,6 @@
+use super::*;
+
 use std::str;
-
-pub use super::*;
-
 
 #[cfg(test)]
 mod tests {
@@ -346,7 +345,7 @@ pub fn iter_print<'a>(iter: &mut std::slice::Iter<'a, u32>) {
 }
 
 fn decode_next<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> Bencoding {
-    while let Some(&&curr) = iter.peek() {
+    if let Some(&&curr) = iter.peek() {
         match curr {
             DICTIONARY_START => {
                 return decode_dictionary(&mut iter);
@@ -438,7 +437,8 @@ fn decode_dictionary<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a,
 fn decode_number<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>, t: u8) -> Bencoding {
     let mut snum: String = String::new();
     let mut found_terminator: bool = false;
-    while let Some(b) = iter.next() {
+
+    for b in iter {
         match *b {
             NUMBER_START => {
                 // Discard number start indicator.
@@ -476,11 +476,10 @@ fn decode_number<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>, t
 // The length of the byte string prefixes the byte string, with a delimiter.
 fn extract_byte_string_length<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>) -> u64 {
     let benc_num = decode_number_unmarked(&mut iter, BYTE_ARRAY_DIVIDER);
-    let len = match benc_num {
+    match benc_num {
         Bencoding::Integer(v) => v,
         _ => panic!("unexpected type"),
-    };
-    len
+    }
 }
 
 
@@ -488,14 +487,14 @@ fn extract_byte_string_length<'a>(mut iter: &mut std::iter::Peekable<std::slice:
 fn decode_byte_string_len<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a, u8>>, len: u8) -> Bencoding {
     let mut decr: u8 = len;
     let mut buf: Vec<u8> = Vec::new();
-    while let Some(b) = iter.next() {
+    for b in iter {
         buf.push(*b);
-        decr = decr - 1;
+        decr -= 1;
         if decr == 0 {
             return Bencoding::ByteString(buf);
         }
     }
-    return Bencoding::ByteString(buf);
+    Bencoding::ByteString(buf)
 }
 
 
@@ -508,16 +507,14 @@ fn decode_byte_string<'a>(mut iter: &mut std::iter::Peekable<std::slice::Iter<'a
         return Bencoding::ByteString(buf);
     }
 
-    let mut i: u64 = 0;
-    while let Some(b) = iter.next() {
+    for (mut i, b) in iter.enumerate() {
         buf.push(*b);
-        i = i + 1;
-        if i == len {
+        i += 1;
+        if i as u64 == len {
             break;
         }
     }
-
-    return Bencoding::ByteString(buf);
+    Bencoding::ByteString(buf)
 }
 
 // decode_number_unmarked does the same as decode_number_terminated
@@ -547,7 +544,7 @@ fn decode_number_unmarked<'a>(iter: &mut std::iter::Peekable<std::slice::Iter<'a
     }
 
     if !found_terminator {
-        while let Some(b) = iter.next() {
+        for b in iter {
             if *b == t {
                 found_terminator = true;
                 break;
